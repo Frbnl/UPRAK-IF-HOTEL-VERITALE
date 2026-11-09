@@ -1,5 +1,7 @@
 from conn import konek, dbcursor, tampilkan
 from search_account import search_by_id, find_guest_account
+from booking_management import booking_menu
+from room_management import room_menu
 import time as count
 from datetime import datetime
 
@@ -205,10 +207,16 @@ def guest_acc_management():
 while True:
     print("\n===== HOTEL VERITALE =====")
     print("1. Guest account management")
+    print("2. Booking management")
+    print("3. Room management")
     print("0. Exit")
     pilihan = input("Masukkan pilihan: ")
     if pilihan == "1":
         guest_acc_management()
+    elif pilihan == "2":
+        booking_menu()
+    elif pilihan == "3":
+        room_menu()
     elif pilihan == "0":
         print("Terima kasih telah menggunakan program ini.")
         break

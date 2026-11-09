@@ -68,5 +68,3 @@ def find_guest_account():
     else:
         print("Pilihan tidak valid. Silakan coba lagi.")
         find_guest_account()
-    
-    
