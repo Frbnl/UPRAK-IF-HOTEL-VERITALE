@@ -98,14 +98,16 @@ def create_booking(guest_id=None):
         print("Pilihan metode pembayaran tidak valid.")
         return
     payment_method = payment_methods[payment_choice]
-
+    dbcursor.execute("SELECT COALESCE(MAX(booking_id), 0) + 1 FROM bookings")
+    booking_id = int(dbcursor.fetchone()[0])
     sql = (
         "INSERT INTO bookings "
-        "(guest_id, room_id, check_in, check_out, nights, channel, "
+        "(booking_id, guest_id, room_id, check_in, check_out, nights, channel, "
         "total_payment, payment_method, booking_status, rating) "
-        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
     )
     values = (
+        booking_id,
         guest_id,
         room_id,
         check_in,
@@ -118,7 +120,6 @@ def create_booking(guest_id=None):
         None,
     )
     dbcursor.execute(sql, values)
-    booking_id = dbcursor.lastrowid
     konek.commit()
     print(f"Booking {booking_id} berhasil dibuat untuk {nights} malam.")
 
@@ -234,13 +235,19 @@ def check_out_booking():
     if booking[0] == "Checked Out":
         print(f"Booking {booking_id} sudah berstatus Checked Out.")
         return
-
+    dbcursor.execute(
+        "SELECT guests.guest_name FROM bookings "
+        "INNER JOIN guests ON bookings.guest_id = guests.guest_id "
+        "WHERE bookings.booking_id = %s",
+        (booking_id,),
+    )
+    guest_name = dbcursor.fetchone()[0]
     dbcursor.execute(
         "UPDATE bookings SET booking_status = %s WHERE booking_id = %s",
         ("Checked Out", booking_id),
     )
     konek.commit()
-    print(f"Booking {booking_id} berhasil di-check-out.")
+    print(f"Booking {booking_id} atas nama {guest_name} berhasil di-check-out.")
 
 
 def booking_menu():
