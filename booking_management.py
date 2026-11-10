@@ -38,23 +38,18 @@ def _room_has_conflict(room_id, check_in, check_out, booking_id=None):
     return dbcursor.fetchone() is not None
 
 
-def create_booking():
-    booking_id = input("Masukkan ID booking: ").strip()
-    guest_id = input("Masukkan ID tamu: ").strip()
-    room_id = input("Masukkan ID kamar: ").strip()
+def create_booking(guest_id=None):
+    if guest_id is None:
+        guest_id = input("Masukkan ID tamu: ").strip()
+    guest_id = str(guest_id).strip()
     check_in = _read_date("Masukkan tanggal check-in (YYYY-MM-DD): ")
     check_out = _read_date("Masukkan tanggal check-out (YYYY-MM-DD): ")
 
-    if not booking_id or not guest_id or not room_id:
-        print("ID booking, tamu, dan kamar wajib diisi.")
+    if not guest_id:
+        print("ID tamu wajib diisi.")
         return
     if check_out <= check_in:
         print("Tanggal check-out harus setelah tanggal check-in.")
-        return
-
-    dbcursor.execute("SELECT 1 FROM bookings WHERE booking_id = %s", (booking_id,))
-    if dbcursor.fetchone():
-        print(f"Booking dengan ID {booking_id} sudah ada.")
         return
 
     dbcursor.execute("SELECT 1 FROM guests WHERE guest_id = %s", (guest_id,))
@@ -62,19 +57,59 @@ def create_booking():
         print(f"Tamu dengan ID {guest_id} tidak ditemukan.")
         return
 
-    price_per_night = _room_price(room_id)
-    if price_per_night is None:
-        print(f"Kamar dengan ID {room_id} tidak ditemukan atau belum memiliki harga.")
+    dbcursor.execute(
+        "SELECT rooms.room_id, rooms.room_type, rooms.price_per_night "
+        "FROM rooms "
+        "WHERE rooms.status = 'Available' AND rooms.price_per_night IS NOT NULL "
+        "AND NOT EXISTS ("
+        "SELECT 1 FROM bookings "
+        "WHERE bookings.room_id = rooms.room_id "
+        "AND bookings.check_in < %s AND bookings.check_out > %s "
+        "AND COALESCE(bookings.booking_status, '') "
+        "NOT IN ('Checked Out', 'Cancelled')"
+        ") ORDER BY rooms.room_id",
+        (check_out, check_in),
+    )
+    available_rooms = dbcursor.fetchall()
+    if not available_rooms:
+        print("Tidak ada kamar yang tersedia pada tanggal tersebut.")
         return
 
-    if _room_has_conflict(room_id, check_in, check_out):
-        print("Kamar sudah memiliki booking pada rentang tanggal tersebut.")
+    print("\n--- Kamar Tersedia ---")
+    tampilkan(available_rooms)
+    room_id = input("Pilih ID kamar: ").strip()
+    selected_room = next(
+        (room for room in available_rooms if str(room[0]) == room_id),
+        None,
+    )
+    if selected_room is None:
+        print("ID kamar tidak termasuk dalam daftar kamar yang tersedia.")
         return
 
     nights = (check_out - check_in).days
-    total_payment = price_per_night * nights
+    total_payment = selected_room[2] * nights
     channel = input("Masukkan channel booking: ").strip()
-    payment_method = input("Masukkan metode pembayaran: ").strip()
+    print("Pilih metode pembayaran:")
+    print("1. QRIS")
+    print("2. Bank Transfer")
+    payment_choice = input("Masukkan pilihan: ").strip()
+    payment_methods = {"1": "QRIS", "2": "Bank Transfer"}
+    if payment_choice not in payment_methods:
+        print("Pilihan metode pembayaran tidak valid.")
+        return
+    payment_method = payment_methods[payment_choice]
+
+    dbcursor.execute("SELECT MAX(CAST(booking_id AS UNSIGNED)) FROM bookings")
+    max_booking_id = dbcursor.fetchone()[0] or 0
+    booking_id = int(max_booking_id) + 1
+    while True:
+        dbcursor.execute(
+            "SELECT 1 FROM bookings WHERE booking_id = %s",
+            (booking_id,),
+        )
+        if dbcursor.fetchone() is None:
+            break
+        booking_id += 1
 
     sql = (
         "INSERT INTO bookings "
@@ -101,8 +136,25 @@ def create_booking():
 
 
 def view_bookings():
-    dbcursor.execute("SELECT * FROM bookings")
+    sql = """
+    SELECT
+        bookings.booking_id,
+        guests.guest_name,
+        rooms.room_id,
+        rooms.room_type,
+        bookings.check_in,
+        bookings.check_out,
+        bookings.total_payment,
+        bookings.booking_status
+    FROM bookings
+    INNER JOIN guests
+        ON bookings.guest_id = guests.guest_id
+    INNER JOIN rooms
+        ON bookings.room_id = rooms.room_id
+    """
+    dbcursor.execute(sql)
     results = dbcursor.fetchall()
+
     if results:
         print("\n--- Daftar Booking ---")
         tampilkan(results)

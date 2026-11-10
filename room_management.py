@@ -4,9 +4,9 @@ import time as count
 
 def timer(seconds):
     for i in range(seconds, 0, -1):
-        print(f"Program akan kembali dalam {i} detik...", end="\\r")
+        print(f"Program akan kembali dalam {i} detik...", end="\r", flush=True)
         count.sleep(1)
-    print(" " * 50, end="\\r")
+    print("\r" + " " * 50 + "\r", end="", flush=True)
 
 
 def view_rooms():
@@ -14,7 +14,7 @@ def view_rooms():
     dbcursor.execute(sql)
     results = dbcursor.fetchall()
     if results:
-        print("\\n--- Daftar Kamar ---")
+        print("\n--- Daftar Kamar ---")
         tampilkan(results)
     else:
         print("Tidak ada kamar yang ditemukan.")
@@ -141,7 +141,7 @@ def delete_room():
 
 def room_menu(role):
     while True:
-        print("\\n--- Room Management Menu ---")
+        print("\n--- Room Management Menu ---")
         print("1. View Rooms")
 
         if role == "admin":
