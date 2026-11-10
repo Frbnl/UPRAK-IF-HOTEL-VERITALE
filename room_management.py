@@ -22,16 +22,6 @@ def view_rooms():
 
 
 def add_room():
-    dbcursor.execute("SELECT MAX(CAST(room_id AS UNSIGNED)) FROM rooms")
-    max_room_id = dbcursor.fetchone()[0] or 0
-    room_id = int(max_room_id) + 1
-
-    while True:
-        dbcursor.execute("SELECT 1 FROM rooms WHERE room_id = %s", (room_id,))
-        if dbcursor.fetchone() is None:
-            break
-        room_id += 1
-
     room_type = input("Masukkan tipe kamar: ")
     floor = input("Masukkan lantai kamar: ")
     bed_type = input("Masukkan tipe tempat tidur: ")
@@ -43,9 +33,10 @@ def add_room():
         print("Status kamar tidak valid.")
         return
 
-    sql = "INSERT INTO rooms (room_id, room_type, floor, bed_type, price_per_night, capacity, status) VALUES (%s, %s, %s, %s, %s, %s, %s)"
-    val = (room_id, room_type, floor, bed_type, price, capacity, status)
+    sql = "INSERT INTO rooms (room_type, floor, bed_type, price_per_night, capacity, status) VALUES (%s, %s, %s, %s, %s, %s)"
+    val = (room_type, floor, bed_type, price, capacity, status)
     dbcursor.execute(sql, val)
+    room_id = dbcursor.lastrowid
     konek.commit()
     print(f"Kamar {room_id} berhasil ditambahkan.")
     timer(3)

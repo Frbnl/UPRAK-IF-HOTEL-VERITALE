@@ -99,26 +99,13 @@ def create_booking(guest_id=None):
         return
     payment_method = payment_methods[payment_choice]
 
-    dbcursor.execute("SELECT MAX(CAST(booking_id AS UNSIGNED)) FROM bookings")
-    max_booking_id = dbcursor.fetchone()[0] or 0
-    booking_id = int(max_booking_id) + 1
-    while True:
-        dbcursor.execute(
-            "SELECT 1 FROM bookings WHERE booking_id = %s",
-            (booking_id,),
-        )
-        if dbcursor.fetchone() is None:
-            break
-        booking_id += 1
-
     sql = (
         "INSERT INTO bookings "
-        "(booking_id, guest_id, room_id, check_in, check_out, nights, channel, "
+        "(guest_id, room_id, check_in, check_out, nights, channel, "
         "total_payment, payment_method, booking_status, rating) "
-        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
     )
     values = (
-        booking_id,
         guest_id,
         room_id,
         check_in,
@@ -131,6 +118,7 @@ def create_booking(guest_id=None):
         None,
     )
     dbcursor.execute(sql, values)
+    booking_id = dbcursor.lastrowid
     konek.commit()
     print(f"Booking {booking_id} berhasil dibuat untuk {nights} malam.")
 

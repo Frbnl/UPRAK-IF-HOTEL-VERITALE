@@ -60,16 +60,6 @@ def login():
 
 
 def create_guest_account():
-    dbcursor.execute("SELECT MAX(CAST(guest_id AS UNSIGNED)) FROM guests")
-    max_guest_id = dbcursor.fetchone()[0] or 0
-    guest_id = int(max_guest_id) + 1
-
-    while True:
-        dbcursor.execute("SELECT 1 FROM guests WHERE guest_id = %s", (guest_id,))
-        if dbcursor.fetchone() is None:
-            break
-        guest_id += 1
-
     nama = input("Masukkan nama tamu: ").strip()
     jk = input("Masukkan jenis kelamin tamu (L/P): ").strip().upper()
     country = input("Masukkan negara tamu: ").strip()
@@ -88,11 +78,12 @@ def create_guest_account():
     register_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     sql = (
         "INSERT INTO guests "
-        "(guest_id, guest_name, gender, country, email, phone, member_status, registered_date) "
-        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+        "(guest_name, gender, country, email, phone, member_status, registered_date) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s)"
     )
-    val = (guest_id, nama, jk, country, email, telpon, member, register_date)
+    val = (nama, jk, country, email, telpon, member, register_date)
     dbcursor.execute(sql, val)
+    guest_id = dbcursor.lastrowid
     konek.commit()
     print(f"Tamu {nama} berhasil ditambahkan dengan ID {guest_id}.")
     return guest_id, nama
